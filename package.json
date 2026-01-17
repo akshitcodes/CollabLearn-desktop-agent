@@ -1,0 +1,68 @@
+{
+  "name": "collablearn-desktop",
+  "version": "0.1.0",
+  "description": "CollabLearn Desktop Client - Local coding agent orchestration",
+  "main": "dist/main/index.js",
+  "author": "CollabLearn",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently \"yarn dev:renderer\" \"yarn dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "node esbuild.main.cjs --watch",
+    "build": "yarn build:renderer && yarn build:main",
+    "build:renderer": "vite build",
+    "build:main": "node esbuild.main.cjs",
+    "electron": "electron .",
+    "start": "yarn build && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.collablearn.desktop",
+    "productName": "CollabLearn Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "resources/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "resources/icon.png"
+    }
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.9",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
+    "electron-is-dev": "^3.0.1",
+    "esbuild": "^0.27.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.13",
+    "cors": "^2.8.5",
+    "electron-store": "^11.0.2",
+    "express": "^5.2.1",
+    "rxjs": "^7.8.2",
+    "zod": "^4.3.5"
+  }
+}
