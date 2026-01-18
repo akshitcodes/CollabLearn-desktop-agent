@@ -395,6 +395,75 @@ export function registerIpcHandlers(): void {
     return ContextBridge.hasLocalContext(options.projectPath, options.agentId);
   });
 
+  // === Ideation handlers ===
+  ipcMain.handle('ideation:fetchConfig', async (_event, mode: 'standard' | 'deep_brainstorm') => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.fetchIdeationConfig(mode);
+  });
+
+  ipcMain.handle('ideation:createSession', async (_event, options: {
+    mode: 'standard' | 'deep_brainstorm';
+    projectTitle?: string;
+  }) => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.createSession(options.mode, options.projectTitle);
+  });
+
+  ipcMain.handle('ideation:getLocalSessions', async () => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.getLocalSessions();
+  });
+
+  ipcMain.handle('ideation:syncSession', async (_event, session: unknown) => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.syncSessionToServer(session as Parameters<typeof IdeationService.syncSessionToServer>[0]);
+  });
+
+  ipcMain.handle('ideation:linkToCollab', async (_event, sessionId: string, collabId: number) => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.linkToCollab(sessionId, collabId);
+  });
+
+  // === Context Pack handlers ===
+  ipcMain.handle('contextpack:preview', async (_event, options: {
+    projectPath: string;
+    agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[];
+  }) => {
+    const { ContextPackService } = await import('../services/ContextPackService');
+    return ContextPackService.previewContextPack(options.projectPath, { agents: options.agents });
+  });
+
+  ipcMain.handle('contextpack:fetchPrompts', async () => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.fetchContextPackPrompts();
+  });
+
+  ipcMain.handle('contextpack:fetchAgentTemplates', async () => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.fetchAgentConfigTemplates();
+  });
+
+  ipcMain.handle('contextpack:writeFiles', async (_event, options: {
+    projectPath: string;
+    files: Array<{ type: string; content: string }>;
+    overwrite?: boolean;
+  }) => {
+    const { ContextPackService } = await import('../services/ContextPackService');
+    return ContextPackService.writeContextPackFiles(options.projectPath, options.files, { overwrite: options.overwrite });
+  });
+
+  ipcMain.handle('contextpack:writeAgentConfigs', async (_event, options: {
+    projectPath: string;
+    agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[];
+    overwrite?: boolean;
+  }) => {
+    const { ContextPackService } = await import('../services/ContextPackService');
+    const { IdeationService } = await import('../services/IdeationService');
+    // Get a default summary - in practice, this should come from the UI
+    const summary = { project_idea: 'Project' };
+    return ContextPackService.writeAgentConfigs(options.projectPath, summary, options.agents, { overwrite: options.overwrite });
+  });
+
   console.log('✅ IPC handlers registered');
 }
 

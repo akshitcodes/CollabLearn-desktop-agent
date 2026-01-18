@@ -6,6 +6,14 @@ import { AgentAdapter, AgentConfig, TaskPrompt, ExecuteOptions } from './types';
 // ===========================================
 // Adapter for Anthropic's Claude Code CLI
 // Requires: claude CLI installed
+//
+// LIMITATIONS vs Copilot SDK:
+// - No bi-directional tool callbacks (Claude operates autonomously)
+// - Limited control over file operations (no approval flow)
+// - Basic stdout/stderr parsing instead of structured events
+// 
+// TODO: Explore Claude Agent SDK for better integration
+// See: https://docs.claude.com/en/docs/agent-sdk
 
 export class ClaudeAdapter implements AgentAdapter {
   readonly id = 'claude-code';
@@ -48,7 +56,12 @@ export class ClaudeAdapter implements AgentAdapter {
     return {
       enabled: true,
       executablePath: 'claude',
-      defaultFlags: ['--allowedTools', 'Edit,Bash,Read,Write'],
+      defaultFlags: [
+        '--output-format', 'stream-json',
+        '--allowedTools', 'Edit,Bash,Read,Write',
+        '--max-budget-usd', '5.00',
+        '--max-turns', '50',
+      ],
     };
   }
 

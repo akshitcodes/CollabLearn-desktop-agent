@@ -44,6 +44,9 @@ export interface StoreSchema {
     processId?: string;
     status?: 'running' | 'completed' | 'failed' | 'stopped';
   }>;
+
+  // Ideation sessions (local cache for offline access)
+  ideationSessions: string; // JSON stringified array of IdeationSession
 }
 
 const defaults: StoreSchema = {
@@ -60,6 +63,7 @@ const defaults: StoreSchema = {
   agentVersions: {},
   workspaceDirectories: {},
   executionLogs: {},
+  ideationSessions: '[]', // Empty JSON array
 };
 
 // Use a simple JSON file store instead of electron-store for now

@@ -5,8 +5,9 @@ import SettingsPage from './pages/SettingsPage';
 import AuthModal from './components/AuthModal';
 import WorkspaceBrowser from './components/WorkspaceBrowser';
 import TaskList from './components/TaskList';
+import IdeationPanel from './components/IdeationPanel';
 
-type Page = 'dashboard' | 'settings' | 'workspaces' | 'tasks';
+type Page = 'dashboard' | 'settings' | 'workspaces' | 'tasks' | 'ideation';
 
 function App() {
   const [version, setVersion] = useState<string>('');
@@ -125,6 +126,13 @@ function App() {
               agents={agents}
               onExecuteTask={handleExecuteTask}
             />
+          </section>
+        );
+      
+      case 'ideation':
+        return (
+          <section className="content ideation-content">
+            <IdeationPanel onBack={() => handleNavigate('dashboard')} />
           </section>
         );
       
@@ -249,6 +257,17 @@ function App() {
             title={!isAuthenticated ? 'Login to view workspaces' : ''}
           >
             <span>📂</span> Workspaces
+          </a>
+          <a 
+            href="#" 
+            className={`nav-item ${currentPage === 'ideation' ? 'active' : ''} ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              if (isAuthenticated) handleNavigate('ideation'); 
+            }}
+            title={!isAuthenticated ? 'Login to use Ideation' : ''}
+          >
+            <span>💡</span> Ideation
           </a>
           <a 
             href="#" 
