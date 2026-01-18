@@ -407,6 +407,89 @@ export const IdeationService = {
     
     return summary;
   },
+
+  /**
+   * Send a message and get AI response using local SOTA model
+   * Uses CopilotSdkAdapter for actual AI chat
+   */
+  async sendMessage(
+    sessionId: string,
+    userMessage: string,
+    mode: IdeationMode = 'standard',
+    onChunk?: (chunk: string) => void
+  ): Promise<{ response: string; messageId: string }> {
+    console.log(`💬 Sending message in session ${sessionId}`);
+    
+    // Get session from local storage
+    const sessions = this.getLocalSessions();
+    const session = sessions.find(s => s.sessionId === sessionId);
+    
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Fetch ideation config for system prompt
+    const config = await this.fetchIdeationConfig(mode);
+    
+    // Add user message to session
+    const userMsg = this.addMessage(session, 'user', userMessage);
+    
+    // Import CopilotSdkAdapter class and create instance
+    const CopilotSdkAdapter = (await import('../agents/CopilotSdkAdapter')).default;
+    const adapter = new CopilotSdkAdapter();
+    
+    // Create ideation session with CopilotSdkAdapter
+    const toolEvents: Array<{ type: string; toolName: string }> = [];
+    const copilotSession = await adapter.createIdeationSession(
+      config.systemPrompt,
+      (event: { type: string; toolName: string }) => {
+        toolEvents.push({ type: event.type, toolName: event.toolName });
+        console.log(`🔧 Tool event: ${event.type} - ${event.toolName}`);
+      }
+    );
+
+    // Build messages for chat
+    const messages = this.buildChatMessages(session, config);
+    
+    // Send message and get response
+    let fullResponse = '';
+    
+    try {
+      // Use message streaming
+      const turns = copilotSession.turns({
+        prompt: userMessage,
+      });
+      
+      for await (const event of turns) {
+        if (event.kind === 'text') {
+          fullResponse += event.text;
+          if (onChunk) {
+            onChunk(event.text);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ AI response error:', error);
+      throw new Error(error.message || 'Failed to get AI response');
+    }
+
+    // Add assistant message to session
+    const assistantMsg = this.addMessage(session, 'assistant', fullResponse, {
+      toolEvents,
+    });
+
+    // Sync to server (background)
+    this.syncSessionToServer(session).catch(err => {
+      console.warn('Failed to sync session:', err.message);
+    });
+
+    console.log(`✅ AI response received (${fullResponse.length} chars)`);
+    
+    return {
+      response: fullResponse,
+      messageId: assistantMsg.messageId,
+    };
+  },
 };
 
 export default IdeationService;

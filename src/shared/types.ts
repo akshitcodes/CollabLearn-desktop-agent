@@ -76,6 +76,7 @@ declare global {
         getLocalSessions: () => Promise<IdeationSession[]>;
         syncSession: (session: IdeationSession) => Promise<void>;
         linkToCollab: (sessionId: string, collabId: number) => Promise<void>;
+        sendMessage: (options: { sessionId: string; message: string; mode: 'standard' | 'deep_brainstorm' }) => Promise<{ response: string; messageId: string }>;
       };
       
       contextpack: {

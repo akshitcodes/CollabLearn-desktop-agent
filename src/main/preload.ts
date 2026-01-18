@@ -97,6 +97,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('ideation:syncSession', session),
     linkToCollab: (sessionId: string, collabId: number) =>
       ipcRenderer.invoke('ideation:linkToCollab', sessionId, collabId),
+    sendMessage: (options: { sessionId: string; message: string; mode: 'standard' | 'deep_brainstorm' }) =>
+      ipcRenderer.invoke('ideation:sendMessage', options),
   },
 
   // Context Pack (local file generation)

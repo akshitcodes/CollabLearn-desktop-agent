@@ -424,6 +424,16 @@ export function registerIpcHandlers(): void {
     return IdeationService.linkToCollab(sessionId, collabId);
   });
 
+  // Send message and get AI response via CopilotSdkAdapter
+  ipcMain.handle('ideation:sendMessage', async (_event, options: {
+    sessionId: string;
+    message: string;
+    mode: 'standard' | 'deep_brainstorm';
+  }) => {
+    const { IdeationService } = await import('../services/IdeationService');
+    return IdeationService.sendMessage(options.sessionId, options.message, options.mode);
+  });
+
   // === Context Pack handlers ===
   ipcMain.handle('contextpack:preview', async (_event, options: {
     projectPath: string;
