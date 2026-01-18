@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import './IdeationPanel.css';
+import ClickableOptions, { OptionGroup } from './ClickableOptions';
 
 // ===========================================
 // Types
@@ -94,6 +95,10 @@ export default function IdeationPanel({ onBack }: IdeationPanelProps) {
   // Chat area ref for auto-scroll
   const chatEndRef = useRef<HTMLDivElement>(null);
   
+  // Options state
+  const [currentOptions, setCurrentOptions] = useState<OptionGroup[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  
   // Validation
   const isFormValid = idea.trim().length >= 10 && goal && ideaKnowledge && timeline;
   
@@ -113,6 +118,32 @@ export default function IdeationPanel({ onBack }: IdeationPanelProps) {
       setSessions(localSessions || []);
     } catch (err) {
       console.error('Failed to load sessions:', err);
+    }
+  };
+  
+  // Fetch clickable options from server (uses Groq for speed)
+  const fetchOptionsFromServer = async (aiMessage: string) => {
+    try {
+      setOptionsLoading(true);
+      const response = await fetch('https://api.collablearn.live/api/desktop/ideation/generate-options', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
+        },
+        body: JSON.stringify({ latestAiMessage: aiMessage }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.options) {
+          setCurrentOptions(data.data.options);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch options:', err);
+    } finally {
+      setOptionsLoading(false);
     }
   };
   
@@ -155,22 +186,28 @@ export default function IdeationPanel({ onBack }: IdeationPanelProps) {
         messages: [contextMsg],
       } : null);
       
-      // TODO: Send to AI and get response
-      // For now, add placeholder response
-      setTimeout(() => {
-        const assistantMsg: IdeationMessage = {
-          messageId: `resp-${Date.now()}`,
-          role: 'assistant',
-          content: `Great! I understand you want to build ${idea.substring(0, 100)}...\n\nAs a ${knowledgeOptions.find(k => k.value === ideaKnowledge)?.label || ''} with a ${timelineOptions.find(t => t.value === timeline)?.label || ''} timeline, let me help you develop this concept.\n\n**Next Steps:**\n1. Let's clarify the core problem you're solving\n2. Define your target users\n3. Identify key features\n\nWhat specific aspect would you like to explore first?`,
-          timestamp: new Date(),
-        };
-        
-        setCurrentSession(prev => prev ? {
-          ...prev,
-          messages: [...prev.messages, assistantMsg],
-        } : null);
-        setIsLoading(false);
-      }, 1500);
+      // Send initial context to AI and get response
+      const result = await window.electronAPI.ideation.sendMessage({
+        sessionId: session.sessionId,
+        message: contextMessage,
+        mode,
+      });
+      
+      const assistantMsg: IdeationMessage = {
+        messageId: result.messageId || `resp-${Date.now()}`,
+        role: 'assistant',
+        content: result.response,
+        timestamp: new Date(),
+      };
+      
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        messages: [...prev.messages, assistantMsg],
+      } : null);
+      setIsLoading(false);
+      
+      // Fetch clickable options from server
+      fetchOptionsFromServer(assistantMsg.content);
       
     } catch (err: any) {
       setError(err.message || 'Failed to start session');
@@ -207,21 +244,31 @@ export default function IdeationPanel({ onBack }: IdeationPanelProps) {
     } : null);
     
     try {
-      // TODO: Call CopilotSdkAdapter via IPC to get AI response
-      setTimeout(() => {
-        const assistantMsg: IdeationMessage = {
-          messageId: `resp-${Date.now()}`,
-          role: 'assistant',
-          content: `I received: "${userMessage}"\n\n[AI response will come from your local Copilot/Claude model. Integration in progress...]`,
-          timestamp: new Date(),
-        };
-        
-        setCurrentSession(prev => prev ? {
-          ...prev,
-          messages: [...prev.messages, assistantMsg],
-        } : null);
-        setIsLoading(false);
-      }, 1000);
+      // Clear options while waiting for response
+      setCurrentOptions([]);
+      
+      // Call CopilotSdkAdapter via IPC to get real AI response
+      const result = await window.electronAPI.ideation.sendMessage({
+        sessionId: currentSession.sessionId,
+        message: userMessage,
+        mode: mode,
+      });
+      
+      const assistantMsg: IdeationMessage = {
+        messageId: result.messageId || `resp-${Date.now()}`,
+        role: 'assistant',
+        content: result.response,
+        timestamp: new Date(),
+      };
+      
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        messages: [...prev.messages, assistantMsg],
+      } : null);
+      setIsLoading(false);
+      
+      // Fetch clickable options from server
+      fetchOptionsFromServer(assistantMsg.content);
       
       // Sync session to server (background)
       window.electronAPI.ideation.syncSession(currentSession).catch(console.warn);
@@ -456,6 +503,21 @@ export default function IdeationPanel({ onBack }: IdeationPanelProps) {
           
           <div ref={chatEndRef} />
         </div>
+        
+        {/* Clickable Options */}
+        {currentOptions.length > 0 && !isLoading && (
+          <ClickableOptions
+            options={currentOptions}
+            onOptionClick={(text) => {
+              setInputMessage(text);
+              setCurrentOptions([]);
+            }}
+            disabled={isLoading}
+          />
+        )}
+        {optionsLoading && (
+          <div className="options-loading">Loading options...</div>
+        )}
         
         <div className="chat-input-area">
           <textarea

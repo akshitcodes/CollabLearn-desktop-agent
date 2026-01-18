@@ -53,8 +53,10 @@ function createWindow() {
   });
 }
 
+
 // App lifecycle
 app.whenReady().then(async () => {
+
   // Start the local HTTP server for browser access
   try {
     await startServer();

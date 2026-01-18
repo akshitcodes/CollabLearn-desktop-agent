@@ -98,6 +98,10 @@ export interface GeneratedContextPack {
 // IdeationService
 // ===========================================
 
+// Cache for active sessions to maintain history state
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const activeSessions: Map<string, { adapter: any, copilotSession: any }> = new Map();
+
 export const IdeationService = {
   /**
    * Fetch ideation prompts from server
@@ -271,7 +275,9 @@ export const IdeationService = {
         });
         
         if (!messagesResponse.ok) {
-          throw new Error('Failed to sync messages');
+          const errorData = await messagesResponse.json().catch(() => ({}));
+          console.error('Failed to sync messages. Status:', messagesResponse.status, 'Error:', errorData);
+          throw new Error(`Failed to sync messages: ${messagesResponse.status} ${JSON.stringify(errorData)}`);
         }
       }
       
@@ -434,19 +440,36 @@ export const IdeationService = {
     // Add user message to session
     const userMsg = this.addMessage(session, 'user', userMessage);
     
-    // Import CopilotSdkAdapter class and create instance
-    const CopilotSdkAdapter = (await import('../agents/CopilotSdkAdapter')).default;
-    const adapter = new CopilotSdkAdapter();
-    
-    // Create ideation session with CopilotSdkAdapter
+    // Check for cached session
+    let cached = activeSessions.get(sessionId);
+    let adapter;
+    let copilotSession;
+    // Define toolEvents in scope so it can be used later
     const toolEvents: Array<{ type: string; toolName: string }> = [];
-    const copilotSession = await adapter.createIdeationSession(
-      config.systemPrompt,
-      (event: { type: string; toolName: string }) => {
-        toolEvents.push({ type: event.type, toolName: event.toolName });
-        console.log(`🔧 Tool event: ${event.type} - ${event.toolName}`);
-      }
-    );
+
+    if (cached) {
+      console.log(`♻️ Reusing cached session for ${sessionId}`);
+      adapter = cached.adapter;
+      copilotSession = cached.copilotSession;
+    } else {
+      console.log(`🆕 Creating NEW Copilot SDK session for ${sessionId}`);
+      
+      // Import CopilotSdkAdapter class and create instance
+      const CopilotSdkAdapter = (await import('../agents/CopilotSdkAdapter')).default;
+      adapter = new CopilotSdkAdapter();
+      
+      // Create ideation session with CopilotSdkAdapter
+      copilotSession = await adapter.createIdeationSession(
+        config.systemPrompt,
+        (event: { type: string; toolName: string }) => {
+          toolEvents.push({ type: event.type, toolName: event.toolName });
+          console.log(`🔧 Tool event: ${event.type} - ${event.toolName}`);
+        }
+      );
+
+      // Cache the new session
+      activeSessions.set(sessionId, { adapter, copilotSession });
+    }
 
     // Build messages for chat
     const messages = this.buildChatMessages(session, config);
@@ -455,19 +478,37 @@ export const IdeationService = {
     let fullResponse = '';
     
     try {
-      // Use message streaming
-      const turns = copilotSession.turns({
-        prompt: userMessage,
-      });
-      
-      for await (const event of turns) {
-        if (event.kind === 'text') {
-          fullResponse += event.text;
-          if (onChunk) {
-            onChunk(event.text);
+      // Set up streaming event handler
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      copilotSession.on((event: { type: string; data?: any }) => {
+        console.log(`📡 Copilot Event: ${event.type}`, event.data ? JSON.stringify(event.data).substring(0, 200) : 'no data');
+        
+        if (event.type === 'assistant.message_delta') {
+          const delta = event.data?.deltaContent;
+          if (typeof delta === 'string') {
+            fullResponse += delta;
+            if (onChunk) {
+              onChunk(delta);
+            }
+          }
+        } else if (event.type === 'assistant.message') {
+          // Fallback: If no streaming deltas were received, use the full message content
+          const content = event.data?.content;
+          if (typeof content === 'string' && fullResponse.length === 0) {
+            console.log('⚠️ No deltas received, using full message content');
+            fullResponse = content;
+            if (onChunk) {
+              onChunk(content);
+            }
           }
         }
-      }
+      });
+
+      // Send message and wait for completion
+      // Note: We use the user message as the prompt. 
+      // Context history is separate but the SDK session manages it statefully.
+      await copilotSession.sendAndWait({ prompt: userMessage });
+
     } catch (error: any) {
       console.error('❌ AI response error:', error);
       throw new Error(error.message || 'Failed to get AI response');

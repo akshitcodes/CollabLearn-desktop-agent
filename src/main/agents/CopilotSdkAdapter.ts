@@ -459,7 +459,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
       }),
 
       // === WEB SEARCH TOOL (for deep brainstorm mode) ===
-      defineTool('web_search', {
+      defineTool('collab_web_search', {
         description: 'Search the web for information, documentation, market research, or solutions. Use this to ground recommendations in current data.',
         parameters: z.object({
           query: z.string().describe('Search query'),
@@ -468,7 +468,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
         handler: async ({ query, maxResults = 5 }: { query: string; maxResults?: number }) => {
           onToolEvent({
             type: 'tool_start',
-            toolName: 'web_search',
+            toolName: 'collab_web_search',
             args: { query, maxResults },
             timestamp: Date.now(),
           });
@@ -508,7 +508,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
 
             onToolEvent({
               type: 'tool_end',
-              toolName: 'web_search',
+              toolName: 'collab_web_search',
               result: { success: true, resultCount: results.length },
               timestamp: Date.now(),
             });
@@ -518,7 +518,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
             onToolEvent({
               type: 'tool_error',
-              toolName: 'web_search',
+              toolName: 'collab_web_search',
               error: errorMsg,
               timestamp: Date.now(),
             });
@@ -1022,7 +1022,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
       }),
 
       // === WEB SEARCH TOOL ===
-      defineTool('web_search', {
+      defineTool('collab_web_search', {
         description: 'Search the web for information, documentation, or solutions. Returns summarized results.',
         parameters: z.object({
           query: z.string().describe('Search query'),
@@ -1031,7 +1031,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
         handler: async ({ query, maxResults = 5 }: { query: string; maxResults?: number }) => {
           onToolEvent({
             type: 'tool_start',
-            toolName: 'web_search',
+            toolName: 'collab_web_search',
             args: { query, maxResults },
             timestamp: Date.now(),
           });
@@ -1071,7 +1071,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
 
             onToolEvent({
               type: 'tool_end',
-              toolName: 'web_search',
+              toolName: 'collab_web_search',
               result: { success: true, resultCount: results.length },
               timestamp: Date.now(),
             });
@@ -1081,7 +1081,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
             onToolEvent({
               type: 'tool_error',
-              toolName: 'web_search',
+              toolName: 'collab_web_search',
               error: errorMsg,
               timestamp: Date.now(),
             });
