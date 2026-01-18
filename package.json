@@ -1,6 +1,6 @@
 {
   "name": "collablearn-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CollabLearn Desktop Client - Local coding agent orchestration",
   "main": "dist/main/index.js",
   "author": "CollabLearn",
