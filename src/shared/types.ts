@@ -59,6 +59,17 @@ declare global {
         getStatus: (taskId: number) => Promise<{ processId: string | null; status: 'running' | 'completed' | 'failed' | 'stopped' | null }>; 
       };
       
+      phase: {
+        execute: (options: PhaseExecutionInput) => Promise<PhaseResultOutput>;
+        stop: (immediately?: boolean) => Promise<{ success: boolean }>;
+        isExecuting: () => Promise<boolean>;
+      };
+      
+      context: {
+        sync: (options: ContextSyncInput) => Promise<{ synced: boolean; source: 'local' | 'api' | 'none' }>;
+        hasLocal: (options: { projectPath: string; agentId: string }) => Promise<boolean>;
+      };
+      
       on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
     };
   }
@@ -150,6 +161,44 @@ export interface TestTaskInput {
   context?: string;
   taskId?: number;  // Real task ID for main process to update backend status
   model?: string;   // Model to use for this task execution
+}
+
+// Phase orchestration input for IPC
+export interface PhaseExecutionInput {
+  phaseId: number;
+  workspaceId: number;
+  agentId: string;
+  projectPath: string;
+}
+
+// Phase orchestration result for IPC
+export interface TaskResultOutput {
+  taskId: number;
+  taskTitle: string;
+  status: 'completed' | 'failed' | 'blocked' | 'skipped';
+  blockerReason?: string;
+  duration: number;
+  output: string;
+}
+
+export interface PhaseResultOutput {
+  phaseId: number;
+  tasksCompleted: number;
+  tasksFailed: number;
+  tasksBlocked: number;
+  tasksSkipped: number;
+  results: TaskResultOutput[];
+  stoppedByUser: boolean;
+  blockerReason?: string;
+  totalDuration: number;
+}
+
+// Context sync input for IPC
+export interface ContextSyncInput {
+  projectPath: string;
+  agentId: string;
+  workspaceId: number;
+  forceRefresh?: boolean;
 }
 
 export {};

@@ -6,11 +6,12 @@
 import { ConfigStore } from './ConfigStore';
 import { AuthService } from './AuthService';
 import { Workspace, Phase, Task } from '../../shared/types';
+import { PRODUCTION_API_URL } from '../../shared/constants';
 
 // API base URL
 const getApiBaseUrl = (): string => {
   const customUrl = ConfigStore.get('apiBaseUrl');
-  return customUrl || 'https://collablearn.in/api';
+  return customUrl || PRODUCTION_API_URL;
 };
 
 /**

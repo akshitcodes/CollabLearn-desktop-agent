@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { CopilotClient, defineTool } from '@github/copilot-sdk';
 import { AgentAdapter, AgentConfig, TaskPrompt, ExecuteOptions, AgentOutput, ModelInfo } from './types';
 import { Subject } from 'rxjs';
+import { ContextBridge } from '../services/ContextBridge';
 
 const execAsync = promisify(exec);
 
@@ -349,7 +350,8 @@ export class CopilotSdkAdapter implements AgentAdapter {
   async createSession(
     projectPath: string,
     onToolEvent: (event: ToolExecutionEvent) => void,
-    model?: string  // Optional model override
+    model?: string,  // Optional model override
+    workspaceId?: number  // Optional workspace ID for context fetching
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     if (!this.client) {
@@ -364,11 +366,15 @@ export class CopilotSdkAdapter implements AgentAdapter {
     
     console.log(`📦 Creating session with model: ${sessionModel}`);
     
+    // Load CollabLearn context (agent instructions + context pack)
+    const systemMessage = await this.buildSystemMessageWithContext(projectPath, workspaceId);
+    console.log(`📄 System message length: ${systemMessage.length} chars`);
+    
     const session = await this.client!.createSession({
       model: sessionModel,
       tools,
       systemMessage: {
-        content: this.buildSystemMessage(projectPath),
+        content: systemMessage,
       },
     });
 
@@ -655,7 +661,34 @@ export class CopilotSdkAdapter implements AgentAdapter {
   }
 
   /**
-   * Build system message with project context
+   * Build system message with CollabLearn context (async version)
+   * Uses ContextBridge to load agent instructions if available
+   */
+  private async buildSystemMessageWithContext(
+    projectPath: string,
+    workspaceId?: number
+  ): Promise<string> {
+    // Try to load CollabLearn agent instructions
+    const agentInstructions = await ContextBridge.getSystemPromptForAgent(
+      'copilot',
+      projectPath,
+      workspaceId
+    );
+
+    if (agentInstructions) {
+      console.log('✅ [SDK] Using CollabLearn agent instructions');
+      // Return the full agent instructions from CollabLearn
+      // These already include workflow rules, context pack references, etc.
+      return agentInstructions;
+    }
+
+    // Fallback to default generic prompt
+    console.log('⚠️ [SDK] No CollabLearn context found, using default prompt');
+    return this.buildSystemMessage(projectPath);
+  }
+
+  /**
+   * Build default system message (fallback when no CollabLearn context)
    */
   private buildSystemMessage(projectPath: string): string {
     return `You are an AI coding agent working on a software project.
@@ -710,7 +743,7 @@ export class CopilotSdkAdapter implements AgentAdapter {
           timestamp: Date.now(),
         });
 
-        const session = await this.createSession(task.projectPath, onToolEvent, task.model);
+        const session = await this.createSession(task.projectPath, onToolEvent, task.model, task.workspaceId);
 
         // Set up event handlers - use type guard for SDK events
         session.on((event: { type: string; data?: Record<string, unknown> }) => {

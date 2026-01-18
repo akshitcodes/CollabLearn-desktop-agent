@@ -69,6 +69,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatus: (taskId: number) => ipcRenderer.invoke('logs:getStatus', taskId),
   },
 
+  // Phase orchestration (auto-mode)
+  phase: {
+    execute: (options: { phaseId: number; workspaceId: number; agentId: string; projectPath: string }) =>
+      ipcRenderer.invoke('phase:execute', options),
+    stop: (immediately = false) => ipcRenderer.invoke('phase:stop', immediately),
+    isExecuting: () => ipcRenderer.invoke('phase:isExecuting'),
+  },
+
+  // Context sync (CollabLearn context files)
+  context: {
+    sync: (options: { projectPath: string; agentId: string; workspaceId: number; forceRefresh?: boolean }) =>
+      ipcRenderer.invoke('context:sync', options),
+    hasLocal: (options: { projectPath: string; agentId: string }) =>
+      ipcRenderer.invoke('context:hasLocal', options),
+  },
+
   // Event listeners for streaming output
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => 

@@ -53,7 +53,7 @@ const defaults: StoreSchema = {
   theme: 'dark',
   autoSync: true,
   syncIntervalMinutes: 5,
-  apiBaseUrl: null,  // null = use production (https://collablearn.in/api)
+  apiBaseUrl: null,  // null = use production (see PRODUCTION_API_URL in shared/constants.ts)
   agents: {},
   defaultAgent: null,
   lastWorkspaceId: null,

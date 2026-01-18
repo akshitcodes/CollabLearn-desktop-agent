@@ -316,6 +316,85 @@ export function registerIpcHandlers(): void {
     return { success: true };
   });
 
+  // === Phase Orchestration handlers ===
+  // Import dynamically to avoid circular imports
+  ipcMain.handle('phase:execute', async (event, options: {
+    phaseId: number;
+    workspaceId: number;
+    agentId: string;
+    projectPath: string;
+  }) => {
+    const { phaseOrchestrator } = await import('../services/PhaseOrchestrator');
+    
+    console.log(`🚀 [IPC] Phase execution: phase=${options.phaseId}, workspace=${options.workspaceId}`);
+    
+    const result = await phaseOrchestrator.executePhase(options, {
+      onTaskStart: (task) => {
+        event.sender.send('phase:taskStart', task);
+      },
+      onTaskComplete: (task, taskResult) => {
+        event.sender.send('phase:taskComplete', { task, result: taskResult });
+      },
+      onTaskOutput: (task, output) => {
+        event.sender.send('phase:taskOutput', { taskId: task.id, output });
+      },
+      onBlocker: (task, reason) => {
+        event.sender.send('phase:blocker', { task, reason });
+      },
+      onPhaseComplete: (phaseResult) => {
+        event.sender.send('phase:complete', phaseResult);
+      },
+    });
+    
+    return result;
+  });
+
+  ipcMain.handle('phase:stop', async (_event, immediately = false) => {
+    const { phaseOrchestrator } = await import('../services/PhaseOrchestrator');
+    
+    if (immediately) {
+      await phaseOrchestrator.forceStop();
+    } else {
+      phaseOrchestrator.stopAfterCurrentTask();
+    }
+    
+    return { success: true };
+  });
+
+  ipcMain.handle('phase:isExecuting', async () => {
+    const { phaseOrchestrator } = await import('../services/PhaseOrchestrator');
+    return phaseOrchestrator.isExecuting();
+  });
+
+  // === Context Sync handlers ===
+  ipcMain.handle('context:sync', async (_event, options: {
+    projectPath: string;
+    agentId: string;
+    workspaceId: number;
+    forceRefresh?: boolean;
+  }) => {
+    const { ContextBridge } = await import('../services/ContextBridge');
+    
+    console.log(`📦 [IPC] Context sync: workspace=${options.workspaceId}, agent=${options.agentId}`);
+    
+    const result = await ContextBridge.syncContext(
+      options.projectPath,
+      options.agentId,
+      options.workspaceId,
+      options.forceRefresh
+    );
+    
+    return result;
+  });
+
+  ipcMain.handle('context:hasLocal', async (_event, options: {
+    projectPath: string;
+    agentId: string;
+  }) => {
+    const { ContextBridge } = await import('../services/ContextBridge');
+    return ContextBridge.hasLocalContext(options.projectPath, options.agentId);
+  });
+
   console.log('✅ IPC handlers registered');
 }
 

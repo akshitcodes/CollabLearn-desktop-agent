@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PRODUCTION_WEB_URL } from '../../shared/constants';
 
 interface AuthModalProps {
   onSuccess: (user: { id: number; username: string; email: string }) => void;
@@ -50,7 +51,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
           <div className="token-steps">
             <div className="step">
               <span className="step-num">1</span>
-              <span>Go to <a href="https://collablearn.in/settings" target="_blank" rel="noopener">Settings</a> on CollabLearn</span>
+              <span>Go to <a href={`${PRODUCTION_WEB_URL}/settings`} target="_blank" rel="noopener">Settings</a> on CollabLearn</span>
             </div>
             <div className="step">
               <span className="step-num">2</span>

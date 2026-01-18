@@ -13,6 +13,7 @@ export interface TaskPrompt {
   context?: string;      // Additional context from plan/phase
   projectPath: string;   // Where to run the agent
   model?: string;        // Optional model override for SDK execution
+  workspaceId?: number;  // CollabLearn workspace ID for context fetching
 }
 
 export interface ExecuteOptions {
@@ -48,7 +49,7 @@ export interface ModelInfo {
 }
 
 export interface AgentOutput {
-  type: 'stdout' | 'stderr' | 'status' | 'complete' | 'error' | 'tool_start' | 'tool_end' | 'tool_error';
+  type: 'stdout' | 'stderr' | 'status' | 'complete' | 'error' | 'tool_start' | 'tool_end' | 'tool_error' | 'blocker';
   data: string;
   timestamp: number;
   /** Tool name if this is a tool event */
@@ -57,6 +58,8 @@ export interface AgentOutput {
   toolArgs?: Record<string, unknown>;
   /** Tool result if this is a tool_end event */
   toolResult?: unknown;
+  /** Blocker reason if this is a blocker event */
+  blockerReason?: string;
 }
 
 /**
