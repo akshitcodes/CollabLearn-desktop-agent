@@ -85,36 +85,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('context:hasLocal', options),
   },
 
-  // Ideation (SOTA-powered brainstorming)
-  ideation: {
-    fetchConfig: (mode: 'standard' | 'deep_brainstorm') =>
-      ipcRenderer.invoke('ideation:fetchConfig', mode),
-    createSession: (options: { mode: 'standard' | 'deep_brainstorm'; projectTitle?: string }) =>
-      ipcRenderer.invoke('ideation:createSession', options),
-    getLocalSessions: () =>
-      ipcRenderer.invoke('ideation:getLocalSessions'),
-    syncSession: (session: unknown) =>
-      ipcRenderer.invoke('ideation:syncSession', session),
-    linkToCollab: (sessionId: string, collabId: number) =>
-      ipcRenderer.invoke('ideation:linkToCollab', sessionId, collabId),
-    sendMessage: (options: { sessionId: string; message: string; mode: 'standard' | 'deep_brainstorm' }) =>
-      ipcRenderer.invoke('ideation:sendMessage', options),
-  },
-
-  // Context Pack (local file generation)
-  contextpack: {
-    preview: (options: { projectPath: string; agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[] }) =>
-      ipcRenderer.invoke('contextpack:preview', options),
-    fetchPrompts: () =>
-      ipcRenderer.invoke('contextpack:fetchPrompts'),
-    fetchAgentTemplates: () =>
-      ipcRenderer.invoke('contextpack:fetchAgentTemplates'),
-    writeFiles: (options: { projectPath: string; files: Array<{ type: string; content: string }>; overwrite?: boolean }) =>
-      ipcRenderer.invoke('contextpack:writeFiles', options),
-    writeAgentConfigs: (options: { projectPath: string; agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[]; overwrite?: boolean }) =>
-      ipcRenderer.invoke('contextpack:writeAgentConfigs', options),
-  },
-
   // Event listeners for streaming output
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => 

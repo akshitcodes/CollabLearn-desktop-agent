@@ -70,23 +70,6 @@ declare global {
         hasLocal: (options: { projectPath: string; agentId: string }) => Promise<boolean>;
       };
       
-      ideation: {
-        fetchConfig: (mode: 'standard' | 'deep_brainstorm') => Promise<IdeationConfig>;
-        createSession: (options: { mode: 'standard' | 'deep_brainstorm'; projectTitle?: string }) => Promise<IdeationSession>;
-        getLocalSessions: () => Promise<IdeationSession[]>;
-        syncSession: (session: IdeationSession) => Promise<void>;
-        linkToCollab: (sessionId: string, collabId: number) => Promise<void>;
-        sendMessage: (options: { sessionId: string; message: string; mode: 'standard' | 'deep_brainstorm' }) => Promise<{ response: string; messageId: string }>;
-      };
-      
-      contextpack: {
-        preview: (options: { projectPath: string; agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[] }) => Promise<{ files: string[]; existingFiles: string[] }>;
-        fetchPrompts: () => Promise<ContextPackPrompts>;
-        fetchAgentTemplates: () => Promise<Record<string, AgentConfigTemplate>>;
-        writeFiles: (options: { projectPath: string; files: Array<{ type: string; content: string }>; overwrite?: boolean }) => Promise<GeneratedFile[]>;
-        writeAgentConfigs: (options: { projectPath: string; agents?: ('cursor' | 'claude' | 'copilot' | 'windsurf')[]; overwrite?: boolean }) => Promise<GeneratedFile[]>;
-      };
-      
       on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
     };
   }
@@ -216,71 +199,6 @@ export interface ContextSyncInput {
   agentId: string;
   workspaceId: number;
   forceRefresh?: boolean;
-}
-
-// ===========================================
-// Ideation Types
-// ===========================================
-
-export interface IdeationMessage {
-  messageId: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  metadata?: Record<string, unknown>;
-}
-
-export interface IdeationSession {
-  sessionId: string;
-  mode: 'standard' | 'deep_brainstorm';
-  projectTitle?: string;
-  status: 'active' | 'plan_generated' | 'completed';
-  messages: IdeationMessage[];
-  createdAt: Date;
-  updatedAt: Date;
-  linkedCollabId?: number;
-}
-
-export interface IdeationConfig {
-  mode: 'standard' | 'deep_brainstorm';
-  systemPrompt: string;
-  planGenerationPrompt: string;
-  summarizationPrompt?: string;
-  config: {
-    maxTokens: number;
-    planMaxTokens: number;
-    temperature: number;
-    generateDiagrams: boolean;
-  };
-  tools: Array<{
-    type: string;
-    function: {
-      name: string;
-      description: string;
-      parameters: Record<string, unknown>;
-    };
-  }>;
-}
-
-// ===========================================
-// Context Pack Types
-// ===========================================
-
-export interface ContextPackPrompts {
-  product: { description: string; prompt: string };
-  tech_spec: { description: string; prompt: string };
-  active_plan: { description: string; prompt: string };
-}
-
-export interface AgentConfigTemplate {
-  path: string;
-  template: string;
-}
-
-export interface GeneratedFile {
-  path: string;
-  content: string;
-  type: 'context_pack' | 'agent_config';
 }
 
 export {};
